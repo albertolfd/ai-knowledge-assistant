@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 interface ChatInputProps {
@@ -8,11 +6,7 @@ interface ChatInputProps {
   isStreaming: boolean;
 }
 
-export default function ChatInput({
-  onSend,
-  onStop,
-  isStreaming,
-}: ChatInputProps) {
+export function ChatInput({ onSend, onStop, isStreaming }: ChatInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -26,7 +20,7 @@ export default function ChatInput({
   function handleSubmit() {
     const trimmedMessage = value.trim();
     if (!trimmedMessage || isStreaming) return;
-    onSend(value);
+    onSend(trimmedMessage);
     setValue("");
   }
 
@@ -65,9 +59,9 @@ export default function ChatInput({
       ) : (
         <button
           type="button"
-          aria-label="Send Message"
+          aria-label="Send message"
           disabled={!value.trim()}
-          onSubmit={handleSubmit}
+          onClick={handleSubmit}
           className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600 disabled:opacity-50"
         >
           Send
