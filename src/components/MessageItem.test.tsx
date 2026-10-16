@@ -1,13 +1,6 @@
-import { render, screen, getDefaultNormalizer } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { Streamdown } from "streamdown";
-import { Message } from "./Message";
-
-vi.mock("streamdown", () => ({
-  Streamdown: vi.fn(({ children }: { children: string }) => (
-    <div data-testid="markdown">{children}</div>
-  )),
-}));
-vi.mock("@streamdown/code", () => ({ code: {} }));
+import { MessageItem } from "./MessageItem";
 
 const streamdownMock = vi.mocked(Streamdown);
 
@@ -20,16 +13,12 @@ function getBubble(speakerLabel: string) {
 }
 
 function renderMessage(
-  props: Partial<React.ComponentProps<typeof Message>> = {}
+  props: Partial<React.ComponentProps<typeof MessageItem>> = {}
 ) {
-  render(<Message content="A message" {...props} />);
+  render(<MessageItem content="A message" {...props} />);
 }
 
 describe("Message", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("labels and renders user messages", () => {
     renderMessage();
 
@@ -42,6 +31,15 @@ describe("Message", () => {
 
     expect(screen.getByText("Assistant said:")).toBeInTheDocument();
     expect(screen.getByTestId("markdown")).toHaveTextContent("**Hi**");
+  });
+
+  it("renders typing dots when it is streaming and there is no content", () => {
+    renderMessage({ content: "", role: "assistant", isStreaming: true });
+
+    const bubble = getBubble("Assistant said:");
+
+    expect(streamdownMock).not.toHaveBeenCalled();
+    expect(bubble?.querySelector('[aria-hidden="true"]')).toBeInTheDocument();
   });
 
   it("renders user content as plain text, not markdown", () => {

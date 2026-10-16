@@ -10,12 +10,32 @@ interface MessageProps {
   isStreaming?: boolean;
 }
 
-export function Message({
+export function MessageItem({
   content,
   role = "user",
   isStreaming = false,
 }: MessageProps) {
   const isUser = role === "user";
+
+  function renderAssistantMessage() {
+    return isStreaming && content === "" ? (
+      <TypingDots />
+    ) : (
+      <Streamdown plugins={plugins} caret="block" isAnimating={isStreaming} >
+        {content}
+      </Streamdown>
+    );
+  }
+
+  function TypingDots() {
+    return (
+      <span aria-hidden="true" className="flex gap-1 py-1">
+        <span className="h-2 w-2 rounded-full bg-gray-400 motion-safe:animate-bounce" />
+        <span className="h-2 w-2 rounded-full bg-gray-400 [animation-delay:150ms] motion-safe:animate-bounce" />
+        <span className="h-2 w-2 rounded-full bg-gray-400 [animation-delay:300ms] motion-safe:animate-bounce" />
+      </span>
+    );
+  }
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -30,9 +50,7 @@ export function Message({
         {isUser ? (
           <p className="whitespace-pre-wrap">{content}</p>
         ) : (
-          <Streamdown plugins={plugins} isAnimating={isStreaming}>
-            {content}
-          </Streamdown>
+          renderAssistantMessage()
         )}
       </div>
     </div>
