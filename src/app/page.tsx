@@ -2,6 +2,7 @@
 
 import { ChatInput } from "@/components/ChatInput";
 import { MessageList } from "@/components/MessageList";
+import { SourceCard } from "@/components/SourceCard";
 import { Message } from "@/lib/types";
 
 export default function Home() {
@@ -27,8 +28,18 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex w-full max-w-3xl flex-1 flex-col items-center justify-between bg-white px-16 py-32 sm:items-start dark:bg-black">
+    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-50 font-sans">
+      <main className="flex w-full max-w-3xl flex-1 flex-col items-center justify-between bg-white px-16 py-32 sm:items-start">
+        <SourceCard
+          rank={1}
+          source={{
+            filename: "chunking-strategy.md",
+            excerpt:
+              "Several variables play a role in determining the best chunking strategy, and these variables vary depending on the use case. Here are some key aspects to keep in mind...",
+            similarity: 0.7,
+            rerankScore: 4.5,
+          }}
+        />
         <MessageList
           messages={messages}
           streamingContent="Paragraph chunking"
