@@ -50,6 +50,7 @@ export async function retrieveContext(
     .slice(0, 5);
 
   const sources: Source[] = reranked.map((row) => ({
+    id: row.id,
     filename: row.filename,
     similarity: Number(row.similarity),
     rerankScore: row.rerankScore,

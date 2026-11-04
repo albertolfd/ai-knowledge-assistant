@@ -1,11 +1,13 @@
-import { ChatRequest, Message, Source } from "@/lib/types";
+import { ChatRequest, Message, Source, SourcesState } from "@/lib/types";
 import { useCallback, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useChat() {
   const queryClient = useQueryClient();
   const [streamingContent, setStreamingContent] = useState("");
-  const [sources, setSources] = useState<Source[]>([]);
+  const [sourcesState, setSourcesState] = useState<SourcesState>({
+    status: "idle",
+  });
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const { data: messages = [] } = useQuery<Message[]>({
@@ -31,7 +33,7 @@ export function useChat() {
       ]);
 
       setStreamingContent("");
-      setSources([]);
+      setSourcesState({ status: "loading" });
 
       const body: ChatRequest = {
         message: userMessage,
@@ -70,7 +72,7 @@ export function useChat() {
 
             if (event.type === "sources") {
               capturedSources = event.sources;
-              setSources(capturedSources);
+              setSourcesState({ status: "ready", sources: capturedSources });
             } else if (event.type === "token") {
               fullContent += event.text;
               setStreamingContent(fullContent);
@@ -89,7 +91,11 @@ export function useChat() {
               ]);
               setStreamingContent("");
             }
-          } catch {}
+          } catch {
+            setSourcesState((s) =>
+              s.status === "loading" ? { status: "idle" } : s
+            );
+          }
         }
       }
 
@@ -100,12 +106,13 @@ export function useChat() {
   const abort = useCallback(() => {
     abortControllerRef.current?.abort();
     setStreamingContent("");
+    setSourcesState((s) => (s.status === "loading" ? { status: "idle" } : s));
   }, []);
 
   return {
     messages,
     streamingContent,
-    sources,
+    sourcesState,
     isPending,
     sendMessage,
     abort,

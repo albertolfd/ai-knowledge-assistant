@@ -34,19 +34,19 @@ export function ChatInput({ onSend, onStop, isStreaming }: ChatInputProps) {
   return (
     <div className="flex items-end gap-2 border-t border-gray-200 p-4">
       <label htmlFor="chat-input" className="sr-only">
-        Message
+        <span className="sr-only">Message</span>
+        <textarea
+          id="chat-input"
+          ref={textareaRef}
+          value={value}
+          disabled={isStreaming}
+          rows={1}
+          placeholder="Ask something..."
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-50"
+        />
       </label>
-      <textarea
-        id="chat-input"
-        ref={textareaRef}
-        value={value}
-        disabled={isStreaming}
-        rows={1}
-        placeholder="Ask something..."
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-50"
-      />
       {isStreaming ? (
         <button
           type="button"

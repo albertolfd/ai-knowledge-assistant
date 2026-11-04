@@ -3,6 +3,7 @@ import { SourceCard } from "./SourceCard";
 import { Source } from "@/lib/types";
 
 const source: Source = {
+  id: 1,
   filename: "chunking-strategy.md",
   similarity: 0.7,
   rerankScore: 4.5,
