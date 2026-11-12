@@ -9,6 +9,7 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.tsx"],
     globals: true,
     clearMocks: true,
+    unstubGlobals: true,
   },
   resolve: {
     alias: {

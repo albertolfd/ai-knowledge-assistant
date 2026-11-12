@@ -21,8 +21,12 @@ export interface ChatRequest {
   history: Pick<Message, "role" | "content">[];
 }
 
-
 export type SourcesState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "ready"; sources: Source[] };
+
+export type StreamEvent =
+  | { type: "sources"; sources: Source[] }
+  | { type: "token"; text: string }
+  | { type: "done" };

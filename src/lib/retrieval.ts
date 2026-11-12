@@ -1,3 +1,5 @@
+import "server-only";
+
 import { VoyageAIClient } from "voyageai";
 import { pool } from "./db";
 import type { Source } from "./types";

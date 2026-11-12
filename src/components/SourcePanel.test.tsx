@@ -1,25 +1,27 @@
 import { render, screen, within } from "@testing-library/react";
 import { SourcePanel } from "./SourcePanel";
-import { Source, SourcesState } from "@/lib/types";
-
-const source: Source = {
-  id: 1,
-  filename: "chunking-strategy.md",
-  similarity: 0.7,
-  rerankScore: 4.5,
-  excerpt:
-    "Several variables play a role in determining the best chunking strategy, and these variables vary depending on the use case. Here are some key aspects to keep in mind...",
-};
+import { SourcesState } from "@/lib/types";
+import { makeSource } from "@/test/factories";
 
 const sourcesState: SourcesState = {
   status: "ready",
-  sources: [source],
+  sources: [makeSource()],
 };
 
 function renderSourcePanel(
   props: Partial<React.ComponentProps<typeof SourcePanel>> = {}
 ) {
-  render(<SourcePanel sourcesState={sourcesState} {...props} />);
+  const { container } = render(
+    <SourcePanel
+      sourcesState={sourcesState}
+      headingId="Source panel"
+      {...props}
+    />
+  );
+
+  return {
+    container,
+  };
 }
 
 describe("SourcePanel", () => {
@@ -34,9 +36,9 @@ describe("SourcePanel", () => {
   it("displays header with no source count when sources state is not ready", () => {
     renderSourcePanel({ sourcesState: { status: "idle" } });
 
-    expect(
-      screen.getByRole("heading", { level: 2, name: "Sources" })
-    ).toBeInTheDocument();
+    const header = screen.getByRole("heading", { level: 2, name: "Sources" });
+    expect(header).toBeInTheDocument();
+    expect(header).toHaveAttribute("id", "Source panel");
   });
 
   test.each<{ name: string; state: SourcesState; expected: string }>([
@@ -49,12 +51,15 @@ describe("SourcePanel", () => {
     },
     {
       name: "ready with one source",
-      state: { status: "ready", sources: [source] },
+      state: { status: "ready", sources: [makeSource()] },
       expected: "1 source found",
     },
     {
       name: "ready with two sources",
-      state: { status: "ready", sources: [source, { ...source, id: 2 }] },
+      state: {
+        status: "ready",
+        sources: [makeSource(), makeSource({ id: 2 })],
+      },
       expected: "2 sources found",
     },
   ])("announces '$expected' when $name", ({ state, expected }) => {
@@ -72,9 +77,11 @@ describe("SourcePanel", () => {
   });
 
   it("marks the panel as busy while sources are being retrieved", () => {
-    renderSourcePanel({ sourcesState: { status: "loading" } });
+    const { container } = renderSourcePanel({
+      sourcesState: { status: "loading" },
+    });
 
-    expect(screen.getByRole("complementary")).toHaveAttribute(
+    expect(container.querySelector("[aria-busy]")).toHaveAttribute(
       "aria-busy",
       "true"
     );
@@ -100,13 +107,5 @@ describe("SourcePanel", () => {
       .getAllByRole("heading", { level: 3 })
       .map((heading) => heading.textContent);
     expect(cardHeadings).toEqual(["Source 1: chunking-strategy.md"]);
-  });
-
-  it("is a keyboard-focusable landmark", () => {
-    renderSourcePanel({ sourcesState: { status: "idle" } });
-
-    const panel = screen.getByRole("complementary");
-    expect(panel.tagName).toBe("ASIDE");
-    expect(panel).toHaveAttribute("tabindex", "0");
   });
 });

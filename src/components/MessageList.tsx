@@ -54,7 +54,7 @@ export function MessageList({
       role="region"
       aria-label="Conversation"
       tabIndex={0}
-      className="flex-1 overflow-y-auto p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      className="relative min-h-0 flex-1 overflow-y-auto p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
     >
       {isEmpty && (
         <p className="mt-8 text-center text-sm text-gray-500">

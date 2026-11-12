@@ -1,8 +1,10 @@
 import { SourcesState } from "@/lib/types";
 import { SourceCard } from "./SourceCard";
+import { useId } from "react";
 
 interface SourcePanelProps {
   sourcesState: SourcesState;
+  headingId?: string;
 }
 
 function getStatusMessage(sourcesState: SourcesState) {
@@ -12,7 +14,9 @@ function getStatusMessage(sourcesState: SourcesState) {
   return `${count} ${count === 1 ? "source" : "sources"} found`;
 }
 
-export function SourcePanel({ sourcesState }: SourcePanelProps) {
+export function SourcePanel({ sourcesState, headingId }: SourcePanelProps) {
+  const fallbackId = useId();
+  const id = headingId ?? fallbackId;
   const count =
     sourcesState.status === "ready" ? sourcesState.sources.length : null;
 
@@ -55,25 +59,22 @@ export function SourcePanel({ sourcesState }: SourcePanelProps) {
   };
 
   return (
-    <aside
-      aria-labelledby="Source panel"
-      aria-busy={sourcesState.status === "loading"}
-      tabIndex={0}
-      className="flex flex-1 flex-col gap-3 overflow-y-auto border-l border-gray-200 bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-    >
+    <div>
       <h2
-        id="Source panel"
-        className="sticky top-0 border-b border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900"
+        id={id}
+        className="sticky top-0 border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-900"
       >
         Sources{count !== null && ` (${count})`}
       </h2>
 
-      <div className="p-4">{renderContent()}</div>
+      <div aria-busy={sourcesState.status === "loading"} className="p-4">
+        {renderContent()}
+      </div>
 
       <p role="status" className="sr-only">
         {getStatusMessage(sourcesState)}
       </p>
-    </aside>
+    </div>
   );
 }
 

@@ -1,20 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { SourceCard } from "./SourceCard";
 import { Source } from "@/lib/types";
-
-const source: Source = {
-  id: 1,
-  filename: "chunking-strategy.md",
-  similarity: 0.7,
-  rerankScore: 4.5,
-  excerpt:
-    "Several variables play a role in determining the best chunking strategy, and these variables vary depending on the use case. Here are some key aspects to keep in mind...",
-};
+import { makeSource } from "@/test/factories";
 
 function renderSourceCard(
   props: Partial<React.ComponentProps<typeof SourceCard>> = {}
 ) {
-  render(<SourceCard rank={1} source={source} {...props} />);
+  render(<SourceCard rank={1} source={makeSource()} {...props} />);
 }
 
 describe("SourceCard", () => {
