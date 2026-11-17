@@ -46,9 +46,9 @@ export async function retrieveContext(
   const reranked = rerankResponse
     .data!.map((row) => ({
       ...result.rows[row.index!],
-      rerankResponse: row.relevanceScore,
+      rerankScore: row.relevanceScore,
     }))
-    .sort((a, b) => b.rerankResponse - a.rerankResponse)
+    .sort((a, b) => b.rerankScore - a.rerankScore)
     .slice(0, 5);
 
   const sources: Source[] = reranked.map((row) => ({

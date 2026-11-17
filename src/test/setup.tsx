@@ -6,3 +6,5 @@ vi.mock("streamdown", () => ({
   )),
 }));
 vi.mock("@streamdown/code", () => ({ code: {} }));
+
+vi.mock("server-only", () => ({}));
