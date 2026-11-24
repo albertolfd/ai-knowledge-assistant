@@ -1,12 +1,12 @@
 // @vitest-environment node
 import { POST } from "./route";
-import { retrieveContext } from "@/lib/retrieval";
+import { retrieveContext } from "@/lib/server/retrieval";
 import { StreamEvent } from "@/lib/types";
 import { makeSource } from "@/test/factories";
 
 const { streamMock } = vi.hoisted(() => ({ streamMock: vi.fn() }));
 
-vi.mock("@/lib/retrieval", () => ({ retrieveContext: vi.fn() }));
+vi.mock("@/lib/server/retrieval", () => ({ retrieveContext: vi.fn() }));
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
     messages = { stream: streamMock };

@@ -1,18 +1,9 @@
-import {
-  ChatRequest,
-  Message,
-  Source,
-  SourcesState,
-  StreamEvent,
-} from "@/lib/types";
+import { ChatRequest, Message, SourcesState } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { streamAnswer } from "@/lib/client/chatStream";
 
 const MESSAGES_KEY = ["messages"] as const;
-
-function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
-}
 
 export function useChat() {
   const queryClient = useQueryClient();
@@ -36,103 +27,49 @@ export function useChat() {
     ]);
   }
 
-  async function streamAnswer(): Promise<void> {
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    const current = queryClient.getQueryData<Message[]>(MESSAGES_KEY) ?? [];
-    const question = current.at(-1);
-    if (!question || question.role !== "user") {
-      throw new Error("There is no question to answer");
-    }
-
-    const body: ChatRequest = {
-      message: question.content,
-      history: current
-        .slice(0, -1)
-        .map(({ role, content }) => ({ role, content })),
-    };
-
-    setStreamingContent("");
-    setSourcesState({ status: "loading" });
-
-    let fullContent = "";
-    let capturedSources: Source[] = [];
-
-    function saveAnswer() {
-      appendMessage({
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: fullContent,
-        sources: capturedSources,
-        createdAt: new Date(),
-      });
-    }
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-
-      if (!response.ok)
-        throw new Error(`Request failed with status ${response.status}`);
-      if (!response.body) throw new Error("Response has no body");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let finished = false;
-
-      while (!finished) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const rawEvents = buffer.split("\n\n");
-        buffer = rawEvents.pop() ?? "";
-
-        for (const raw of rawEvents) {
-          if (!raw.startsWith("data: ")) continue;
-          const event = JSON.parse(raw.slice(6)) as StreamEvent;
-
-          switch (event.type) {
-            case "sources":
-              capturedSources = event.sources;
-              setSourcesState({ status: "ready", sources: event.sources });
-              break;
-            case "token":
-              fullContent += event.text;
-              setStreamingContent(fullContent);
-              break;
-            case "done":
-              finished = true;
-              break;
-          }
-        }
-      }
-
-      if (!finished) throw new Error("The response ended unexpectedly");
-      saveAnswer();
-    } catch (error) {
-      if (isAbortError(error)) {
-        if (fullContent) saveAnswer();
-        else setStreamingContent("");
-        return;
-      }
-      setStreamingContent("");
-      throw error;
-    } finally {
-      setSourcesState((s) => (s.status === "loading" ? { status: "idle" } : s));
-      if (abortControllerRef.current === controller)
-        abortControllerRef.current = null;
-    }
-  }
-
   const { mutate, isPending, isError } = useMutation({
-    mutationFn: streamAnswer,
+    mutationFn: async () => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      const current = queryClient.getQueryData<Message[]>(MESSAGES_KEY) ?? [];
+      const question = current.at(-1);
+      if (!question || question.role !== "user") {
+        throw new Error("There is no question to answer");
+      }
+
+      setStreamingContent("");
+      setSourcesState({ status: "loading" });
+
+      const body: ChatRequest = {
+        message: question.content,
+        history: current
+          .slice(0, -1)
+          .map(({ role, content }) => ({ role, content })),
+      };
+
+      const { content, sources } = await streamAnswer(body, controller.signal, {
+        onSources: (sources) => setSourcesState({ status: "ready", sources }),
+        onToken: setStreamingContent,
+      });
+
+      if (content) {
+        appendMessage({
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content,
+          sources,
+          createdAt: new Date(),
+        });
+      } else {
+        setStreamingContent("");
+      }
+    },
+    onError: () => setStreamingContent(""),
+    onSettled: () => {
+      setSourcesState((s) => (s.status === "loading" ? { status: "idle" } : s));
+      abortControllerRef.current = null;
+    },
   });
 
   function sendMessage(content: string) {

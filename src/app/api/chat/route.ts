@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { retrieveContext } from "@/lib/retrieval";
+import { retrieveContext } from "@/lib/server/retrieval";
 import type { ChatRequest, StreamEvent } from "@/lib/types";
 
 const anthropic = new Anthropic();

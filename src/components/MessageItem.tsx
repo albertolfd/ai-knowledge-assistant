@@ -1,6 +1,7 @@
 import { Role } from "@/lib/types";
 import { Streamdown } from "streamdown";
 import { code } from "@streamdown/code";
+import { memo } from "react";
 
 const plugins = { code };
 
@@ -10,7 +11,7 @@ interface MessageProps {
   isStreaming?: boolean;
 }
 
-export function MessageItem({
+export const MessageItem = memo(function MessageItem({
   content,
   role = "user",
   isStreaming = false,
@@ -21,7 +22,7 @@ export function MessageItem({
     return isStreaming && content === "" ? (
       <TypingDots />
     ) : (
-      <Streamdown plugins={plugins} caret="block" isAnimating={isStreaming} >
+      <Streamdown plugins={plugins} caret="block" isAnimating={isStreaming}>
         {content}
       </Streamdown>
     );
@@ -55,4 +56,4 @@ export function MessageItem({
       </div>
     </div>
   );
-}
+});
