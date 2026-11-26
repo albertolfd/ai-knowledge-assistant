@@ -2,34 +2,38 @@ import "server-only";
 
 import { VoyageAIClient } from "voyageai";
 import { pool } from "./db";
-import type { Source } from "./types";
+import type { Source } from "../types";
+import { EMBEDDING_MODEL, queryEmbeddingInput } from "../embedding";
 
-const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGEAI_API_KEY });
+const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY });
 
 interface RetrievalResult {
   context: string;
   sources: Source[];
 }
 
+export const SIMILARITY_THRESHOLD = 0.45;
+export const VECTOR_SEARCH_LIMIT = 20;
+export const MIN_RERANK_SCORE = 0.6;
+export const RERANK_TOP_K = 8;
 const EXCERPT_LENGTH = 200;
 
 export async function retrieveContext(
   question: string
 ): Promise<RetrievalResult> {
   const embedResponse = await voyage.embed({
-    input: [`Query: ${question}`],
-    model: "voyage-code-3",
+    input: [queryEmbeddingInput(question)],
+    model: EMBEDDING_MODEL,
   });
   const embedding = embedResponse.data![0].embedding!;
 
   const result = await pool.query(
     `SELECT id, content, filename, 1 - (embedding <=> $1) AS similarity
         FROM chunks
-        WHERE 1 - (embedding <=> $1) > 0.60
-        AND strategy = 'paragraph'
+        WHERE 1 - (embedding <=> $1) >= $2
         ORDER BY embedding <=> $1
-        LIMIT 10`,
-    [JSON.stringify(embedding)]
+        LIMIT $3`,
+    [JSON.stringify(embedding), SIMILARITY_THRESHOLD, VECTOR_SEARCH_LIMIT]
   );
 
   if (result.rows.length === 0) {
@@ -48,8 +52,13 @@ export async function retrieveContext(
       ...result.rows[row.index!],
       rerankScore: row.relevanceScore,
     }))
+    .filter((chunk) => chunk.rerankScore >= MIN_RERANK_SCORE)
     .sort((a, b) => b.rerankScore - a.rerankScore)
-    .slice(0, 5);
+    .slice(0, RERANK_TOP_K);
+
+  if (reranked.length === 0) {
+    return { context: "", sources: [] };
+  }
 
   const sources: Source[] = reranked.map((row) => ({
     id: row.id,

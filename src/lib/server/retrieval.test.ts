@@ -1,5 +1,11 @@
 // @vitest-environment node
-import { retrieveContext } from "./retrieval";
+import {
+  MIN_RERANK_SCORE,
+  RERANK_TOP_K,
+  retrieveContext,
+  SIMILARITY_THRESHOLD,
+  VECTOR_SEARCH_LIMIT,
+} from "./retrieval";
 
 const { embedMock, rerankMock, queryMock } = vi.hoisted(() => ({
   embedMock: vi.fn(),
@@ -42,6 +48,12 @@ const rerankRows = [
   },
 ];
 
+function rerankScores(...scores: number[]) {
+  return {
+    data: scores.map((relevanceScore, index) => ({ index, relevanceScore })),
+  };
+}
+
 describe("retrieveContext", () => {
   beforeEach(() => {
     embedMock.mockResolvedValue({ data: [{ embedding: [0.1, 0.2, 0.3] }] });
@@ -59,6 +71,8 @@ describe("retrieveContext", () => {
     );
     expect(queryMock).toHaveBeenCalledWith(expect.anything(), [
       "[0.1,0.2,0.3]",
+      SIMILARITY_THRESHOLD,
+      VECTOR_SEARCH_LIMIT,
     ]);
     expect(rerankMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -89,19 +103,6 @@ describe("retrieveContext", () => {
     });
   });
 
-  it("applies a similarity threshold of 0.6 and retrieves chunks split with paragraph strategy", async () => {
-    await retrieveContext(question);
-
-    expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("1 - (embedding <=> $1) > 0.60"),
-      expect.anything()
-    );
-    expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("strategy = 'paragraph'"),
-      expect.anything()
-    );
-  });
-
   it("returns an empty context and sources without calling the rerank, when no chunk was found", async () => {
     queryMock.mockResolvedValueOnce({ rows: [] });
 
@@ -109,5 +110,41 @@ describe("retrieveContext", () => {
 
     expect(response).toEqual({ context: "", sources: [] });
     expect(rerankMock).not.toHaveBeenCalled();
+  });
+
+  it("drops chunks below the minimum rerank score", async () => {
+    rerankMock.mockResolvedValueOnce(
+      rerankScores(MIN_RERANK_SCORE - 0.01, MIN_RERANK_SCORE)
+    );
+
+    const { sources } = await retrieveContext(question);
+
+    expect(sources.map((source) => source.id)).toEqual([2]);
+  });
+
+  it("returns an empty context and sources when the reranker rejects every chunk", async () => {
+    rerankMock.mockResolvedValueOnce(rerankScores(0.2, 0.1));
+
+    const response = await retrieveContext(question);
+
+    expect(response).toEqual({ context: "", sources: [] });
+  });
+
+  it("keeps at most the top results after reranking", async () => {
+    const manyRows = Array.from({ length: RERANK_TOP_K + 2 }, (_, i) => ({
+      id: i + 1,
+      filename: `note-${i + 1}.md`,
+      content: `Content of note ${i + 1}`,
+      similarity: 0.5,
+    }));
+    queryMock.mockResolvedValueOnce({ rows: manyRows });
+    rerankMock.mockResolvedValueOnce(
+      rerankScores(...manyRows.map((_, i) => 0.9 - i * 0.02))
+    );
+
+    const { sources } = await retrieveContext(question);
+
+    expect(sources).toHaveLength(RERANK_TOP_K);
+    expect(sources[0].id).toBe(1);
   });
 });
