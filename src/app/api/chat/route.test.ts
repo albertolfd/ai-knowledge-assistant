@@ -97,7 +97,7 @@ describe("POST /api/chat", () => {
 
     const params = streamMock.mock.calls[0][0];
     expect(params.system).not.toContain("<documents>");
-    expect(params.system).toMatch(/no relevant information/i);
+    expect(params.system).toMatch(/do not answer from general knowledge/i);
     expect((await readEvents(response))[0]).toEqual({
       type: "sources",
       sources: [],
