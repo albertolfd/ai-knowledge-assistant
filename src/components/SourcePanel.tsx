@@ -62,7 +62,7 @@ export function SourcePanel({ sourcesState, headingId }: SourcePanelProps) {
     <div>
       <h2
         id={id}
-        className="sticky top-0 border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-900"
+        className="sticky top-0 border-b border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900"
       >
         Sources{count !== null && ` (${count})`}
       </h2>
